@@ -121,7 +121,7 @@ void main() {
             }
         }
         // massa escura por baixo de tudo que é traço
-        float e0 = masc(p).g * env;
+        float e0 = mi.g * env;        // o mesmo texel de mi, já lido acima
         a = min(a, 1.0);
         c += corSombra.rgb * e0 * (1.0 - a);
         a += e0 * (1.0 - a);
