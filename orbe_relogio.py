@@ -260,6 +260,28 @@ ACOES_TOQUE = ("abrir", "live", "encerrar", "historico", "proximo", "anterior", 
 ACOES_SEGURAR = ACOES_TOQUE + ("falar",)
 
 
+GESTOS = Path.home() / ".local/state/orbe/relogio-gestos.jsonl"
+
+
+def _gravar_gesto(corpo: str):
+    """Evento de gesto do relógio (depuração sem adb) numa linha do jsonl."""
+    try:
+        d = json.loads(corpo)
+    except ValueError:
+        return
+    if not isinstance(d, dict):
+        return
+    d["recebido"] = time.time()
+    try:
+        GESTOS.parent.mkdir(parents=True, exist_ok=True)
+        if GESTOS.exists() and GESTOS.stat().st_size > 5_000_000:
+            GESTOS.replace(GESTOS.with_suffix(".jsonl.1"))
+        with GESTOS.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(d, ensure_ascii=False) + "\n")
+    except OSError as e:
+        LOG.debug("gestos: %s", e)
+
+
 def _do_relogio(k: str, v):
     """Um dos CAMPOS_DO_RELOGIO validado; None se não serve."""
     if k in ("toques", "segurar"):
@@ -794,6 +816,9 @@ class PonteRelogio:
             if sid and self._ao_retomar is not None:
                 threading.Thread(target=self._ao_retomar, args=(self._agente, self._vaga, sid),
                                  name="retomar", daemon=True).start()
+            return
+        if msg.startswith("diag "):
+            _gravar_gesto(msg[5:4096])
             return
         linha = " ".join(msg.split())[:64]
         if linha in ("touch down", "touch up"):
